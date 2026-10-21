@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anomaly detection post read</title>
+<style>
+:root{
+  --bg:#f5f4ef; --bg2:#ebeae3; --card:#fbfaf7; --ink:#12324a; --ink2:#41627a;
+  --sky:#5ab4e5; --sky-d:#1c6c9c; --sky-dd:#0e4468; --sky-l:#cfe8f7; --sky-xl:#e6f3fb;
+  --line:#c9dbe8; --code:#e8eef2; --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.7 Georgia,"Times New Roman",serif}
+h1,h2,h3,h4,nav,button,.ui,table,summary,.tag{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--sky-d)}
+:focus-visible{outline:3px solid var(--sky-d);outline-offset:2px;border-radius:4px}
+#bar{position:fixed;top:0;left:0;height:4px;background:var(--sky-d);width:0;z-index:60}
+nav{position:sticky;top:0;z-index:50;background:rgba(245,244,239,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav .in{max-width:1080px;margin:auto;padding:10px 20px;display:flex;gap:6px;overflow-x:auto;align-items:center}
+nav b{white-space:nowrap;color:var(--sky-dd);margin-right:10px;font-size:.95rem}
+nav a{white-space:nowrap;text-decoration:none;font-size:.82rem;padding:5px 10px;border-radius:99px;color:var(--ink2)}
+nav a:hover,nav a.on{background:var(--sky-l);color:var(--sky-dd)}
+.hero{background:linear-gradient(135deg,var(--sky-dd),var(--sky-d) 60%,var(--sky));color:#fff;padding:78px 20px 70px}
+.hero .in{max-width:900px;margin:auto}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.1;margin:0 0 14px;letter-spacing:-.02em}
+.hero p{font-size:1.15rem;max-width:680px;opacity:.95;margin:0}
+.tag{display:inline-block;background:rgba(255,255,255,.18);padding:4px 12px;border-radius:99px;font-size:.78rem;margin-bottom:18px;letter-spacing:.06em;text-transform:uppercase}
+main{max-width:860px;margin:auto;padding:20px}
+section{padding:44px 0 8px;scroll-margin-top:50px}
+.num{font:700 .8rem system-ui;color:var(--sky-d);letter-spacing:.12em;text-transform:uppercase}
+h2{font-size:clamp(1.6rem,3.2vw,2.15rem);line-height:1.2;margin:4px 0 16px;color:var(--sky-dd)}
+h3{font-size:1.2rem;margin:30px 0 8px;color:var(--sky-dd)}
+h4{margin:16px 0 4px;font-size:1rem}
+p{margin:0 0 14px}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font:.88em ui-monospace,Menlo,Consolas,monospace}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;margin:18px 0}
+.story{background:var(--sky-xl);border-left:5px solid var(--sky-d)}
+.call{background:var(--sky-l);border-radius:var(--r);padding:14px 18px;margin:18px 0;font-family:system-ui,sans-serif;font-size:.97rem}
+.call b:first-child{color:var(--sky-dd)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:18px 0}
+.grid .card{margin:0}
+.formula{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:14px 0;text-align:center;font:1.08rem Georgia,serif;overflow-x:auto}
+.formula i{font-style:italic}
+.viz{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;margin:20px 0;box-shadow:0 2px 10px rgba(28,108,156,.07)}
+.viz>.vt{font:700 .78rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--sky-d);margin-bottom:8px}
+.viz .note{font:.82rem system-ui;color:var(--ink2);margin:10px 0 0}
+button,.btn{font:600 .9rem system-ui;background:var(--sky-d);color:#fff;border:0;border-radius:9px;padding:9px 15px;cursor:pointer}
+button:hover{background:var(--sky-dd)}
+button.alt{background:var(--sky-l);color:var(--sky-dd)}
+button.alt:hover{background:var(--line)}
+button:disabled{opacity:.5;cursor:default}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button{background:var(--sky-xl);color:var(--sky-dd)}
+.tabs button[aria-selected=true]{background:var(--sky-d);color:#fff}
+.panel[hidden]{display:none}
+details{border:1px solid var(--line);border-radius:10px;background:var(--card);margin:10px 0}
+summary{cursor:pointer;padding:11px 16px;font-weight:600;color:var(--sky-dd);font-size:.95rem}
+details[open]>summary{border-bottom:1px solid var(--line)}
+details>div{padding:12px 16px}
+pre{background:var(--code);border-radius:10px;padding:14px;overflow-x:auto;margin:10px 0;font:.8rem/1.55 ui-monospace,Menlo,Consolas,monospace;color:#10344c}
+pre.out{background:var(--sky-xl);border-left:4px solid var(--sky)}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;background:#fff}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+th{background:var(--sky-l);color:var(--sky-dd)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--sky-xl)}
+.bars{display:grid;gap:8px;font:.88rem system-ui}
+.brow{display:grid;grid-template-columns:150px 1fr 64px;gap:10px;align-items:center}
+.btrack{background:var(--sky-xl);border-radius:6px;height:22px;overflow:hidden}
+.bfill{height:100%;background:var(--sky-d);border-radius:6px;transition:width .5s}
+.bfill.b2{background:repeating-linear-gradient(45deg,var(--sky),var(--sky) 6px,#8cc9ee 6px,#8cc9ee 12px)}
+.bval{font-weight:700;text-align:right}
+@media(max-width:560px){.brow{grid-template-columns:100px 1fr 52px}}
+input[type=range]{width:100%;accent-color:var(--sky-d)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pill{display:inline-block;background:var(--sky-l);color:var(--sky-dd);padding:2px 10px;border-radius:99px;font:600 .82rem system-ui}
+.stat{font:700 1.5rem system-ui;color:var(--sky-dd)}
+.quiz{background:#fff;border:2px solid var(--sky);border-radius:var(--r);padding:18px;margin:24px 0}
+.quiz .qh{font:700 .78rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--sky-d)}
+.quiz label{display:block;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0;cursor:pointer;font:.95rem/1.5 system-ui}
+.quiz label:hover{background:var(--sky-xl)}
+.quiz input{margin-right:8px;accent-color:var(--sky-d)}
+.quiz .ok{border-color:var(--sky-d);background:var(--sky-l)}
+.quiz .no{border-style:dashed;opacity:.75}
+.quiz .fb{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--sky-xl);font:.93rem/1.6 system-ui}
+.prompt{background:var(--sky-xl);border:1px dashed var(--sky-d);border-radius:10px;padding:12px 16px;font:.92rem/1.6 system-ui;font-style:italic}
+svg text{font-family:system-ui,sans-serif}
+.hm td{text-align:center;font-weight:600}
+ul{padding-left:22px}
+li{margin:5px 0}
+footer{background:var(--sky-dd);color:#fff;text-align:center;padding:34px 20px;margin-top:60px;font:600 1rem system-ui}
+footer small{display:block;font-weight:400;opacity:.75;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<nav aria-label="Sections"><div class="in" id="nav"><b>Anomaly detection post read</b></div></nav>
+
+<header class="hero"><div class="in">
+  <span class="tag">Post read · Machine learning</span>
+  <h1>Anomaly detection post read</h1>
+  <p>Finding the unusual in data: from one-feature rules to Isolation Forest, One-Class SVM and Local Outlier Factor, told through one marketplace's review queue.</p>
+</div></header>
+
+<main>
+
+<section id="story">
+  <div class="num">Opening story</div>
+  <h2>The listing that was too good to be true</h2>
+  <div class="card story">
+    <p><b>DriveDeal</b> is an online marketplace for used cars. Sellers post a listing with a handful of details, and DriveDeal's pricing engine suggests a fair price from the car's <b>mileage</b> and what similar cars sell for.</p>
+    <p>Used <b>electric cars</b> have started to appear. There aren't many yet, and they behave differently from petrol and diesel cars. Nandini, who heads listing quality, calls Rohan, a data analyst, to her desk.</p>
+    <p>"Last week we had three problems in one day. A listing with a mileage of 1,000,000, which is obviously a typo. A four-year-old car priced like a brand-new one, which looked like a scam. And a pricing suggestion for an EV that was wildly wrong, because our engine has never really seen cars like it."</p>
+    <p>"I have three reviewers. They can check maybe a few dozen listings a day. I need a <b>ranked list of the listings that look unusual</b>. But not everything unusual is bad. Typos and scams I want to fix or remove. Genuinely <b>new kinds of cars</b> I want to <b>learn from</b>, not delete."</p>
+  </div>
+  <div class="grid">
+    <div class="card"><h4>Problem 1</h4>Spotting data that is <b>wrong or suspicious</b>.</div>
+    <div class="card"><h4>Problem 2</h4>Spotting data that is <b>real but new</b>.</div>
+    <div class="card"><h4>The catch</h4>Nobody has ever labelled a listing "anomaly" or "normal". The family of methods built for exactly this is <b>anomaly detection</b>.</div>
+  </div>
+</section>
+
+<section id="terms">
+  <div class="num">Part 1</div>
+  <h2>Anomaly, outlier, novelty</h2>
+  <p>These words are often used interchangeably, but the distinctions are useful. The difference lies in the <b>reference data</b>.</p>
+  <div class="viz">
+    <div class="vt">Explorer · three terms</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">Anomaly</button>
+      <button role="tab" aria-selected="false">Outlier detection</button>
+      <button role="tab" aria-selected="false">Novelty detection</button>
+    </div>
+    <div class="panel"><p><b>Anomaly</b> is the broad term: an observation that does not fit the normal pattern.</p></div>
+    <div class="panel" hidden><p>Your training data <b>may contain</b> anomalies, and the job is to find them in that data. Examples: cleaning a dataset, or finding suspicious listings in last month's data.</p><p class="ui"><span class="pill">scikit-learn</span> <code>fit_predict</code> on the data itself.</p></div>
+    <div class="panel" hidden><p>Your training data is assumed to be <b>clean</b>, and the job is to flag <b>new</b> observations that look unlike it. Example: screening each incoming listing against approved history.</p><p class="ui"><span class="pill">scikit-learn</span> fit on clean data, then <code>predict</code> on new points. <code>LocalOutlierFactor</code> offers <code>novelty=True</code> for this mode.</p></div>
+  </div>
+
+  <h3>Kinds of anomaly</h3>
+  <div class="viz">
+    <div class="vt">Explorer · three kinds</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">Point</button>
+      <button role="tab" aria-selected="false">Contextual</button>
+      <button role="tab" aria-selected="false">Collective</button>
+    </div>
+    <div class="panel"><p>A single observation is unusual by itself. <i>Example: a mileage of 1,000,000.</i></p></div>
+    <div class="panel" hidden><p>Normal in general, but unusual in context. <i>Example: a high price is normal for a luxury car, but not for a 12-year-old hatchback.</i></p></div>
+    <div class="panel" hidden><p>Each observation looks fine, but a <b>group</b> together is unusual. <i>Example: a burst of near-identical listings from one seller.</i></p></div>
+  </div>
+  <p>Here we mostly look at point and contextual anomalies using the <b>combination</b> of Mileage and Price.</p>
+  <div id="q1"></div>
+</section>
+
+<section id="data">
+  <div class="num">Part 2</div>
+  <h2>The data</h2>
+  <p>DriveDeal's file has 908 listings with two columns: <code>Mileage</code> and <code>Price</code>. Mileage and price are what a buyer cares about most, and two dimensions are easy to <b>see</b>. The methods below work in more dimensions too.</p>
+  <div class="tw"><table>
+    <tr><th></th><th class="n">Mileage</th><th class="n">Price</th></tr>
+    <tr><td>count</td><td class="n">908</td><td class="n">908</td></tr>
+    <tr><td>mean</td><td class="n">45.87</td><td class="n">77.56</td></tr>
+    <tr><td>std</td><td class="n">30.60</td><td class="n">19.28</td></tr>
+    <tr><td>min</td><td class="n">1.40</td><td class="n">20.00</td></tr>
+    <tr><td>25%</td><td class="n">25.42</td><td class="n">64.44</td></tr>
+    <tr><td>50%</td><td class="n">34.60</td><td class="n">73.55</td></tr>
+    <tr><td>75%</td><td class="n">49.86</td><td class="n">88.94</td></tr>
+    <tr><td>max</td><td class="n">128.60</td><td class="n">141.20</td></tr>
+  </table></div>
+  <div class="call"><b>How to read it.</b> Compare each feature's minimum and maximum with the middle values (25%, 50%, 75%). Values far outside the bulk are the first suspects. In the scatter plot, most listings follow a general pattern: as mileage rises, price falls. A few points sit far from that pattern. Those are our candidates.</div>
+  <details><summary>Code: loading the data</summary><div><pre>import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns
+from scipy.spatial.distance import pdist, squareform
+from scipy.stats import spearmanr
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
+from sklearn.svm import OneClassSVM
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.covariance import EllipticEnvelope
+from sklearn.metrics import roc_auc_score
+from sklearn.datasets import make_blobs, make_moons
+
+df = pd.read_csv("AnomalyDetection.csv")
+data = df[["Mileage", "Price"]].copy()   # select columns by NAME, never by position
+Xc = data.values</pre><pre class="out">Columns in the file: ['Mileage', 'Price']
+Listings: 908</pre></div></details>
+</section>
+
+<section id="simple">
+  <div class="num">Part 3</div>
+  <h2>Simple detectors and their limits</h2>
+  <p>IQR and Z-score both look at <b>one feature at a time</b>.</p>
+  <div class="grid">
+    <div class="card"><h4>IQR rule</h4>With Q<sub>1</sub>, Q<sub>3</sub> the 25th and 75th percentiles, IQR = Q<sub>3</sub> − Q<sub>1</sub>. Flag a value below <b>Q<sub>1</sub> − 1.5·IQR</b> or above <b>Q<sub>3</sub> + 1.5·IQR</b>. It works from percentiles, so it copes with skewed data.</div>
+    <div class="card"><h4>Z-score rule</h4><div class="formula" style="margin:6px 0"><i>z</i> = (<i>x</i> − <i>x̄</i>) / <i>s</i></div>Counts how many standard deviations a value is from the mean. A common rule flags |z| &gt; 3. It suits roughly bell-shaped data.</div>
+  </div>
+  <div class="viz">
+    <div class="vt">Result on DriveDeal listings</div>
+    <div class="bars" id="simpleBars"></div>
+    <p class="note">Flagged counts per feature out of 908 listings. These rules catch listings that are extreme in <b>a single feature</b>. They have two weaknesses.</p>
+  </div>
+  <details><summary>Code: IQR and Z-score flags</summary><div><pre>def iqr_flags(s, k=1.5):
+    q1, q3 = s.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    return (s &lt; q1 - k * iqr) | (s &gt; q3 + k * iqr)
+
+def z_flags(s, thr=3):
+    return ((s - s.mean()) / s.std()).abs() &gt; thr
+
+flag_iqr = pd.DataFrame({c: iqr_flags(data[c]) for c in data.columns})
+flag_z   = pd.DataFrame({c: z_flags(data[c])   for c in data.columns})
+uni = flag_iqr.any(axis=1) | flag_z.any(axis=1)</pre><pre class="out">Flagged by IQR : {'Mileage': 176, 'Price': 9}
+Flagged by Z>3 : {'Mileage': 0, 'Price': 1}</pre></div></details>
+
+  <h3>Weakness 1: masking</h3>
+  <p>The mean and standard deviation are themselves <b>pulled by the outliers</b>. An extreme value inflates the standard deviation, which shrinks its own z-score.</p>
+  <div class="viz">
+    <div class="vt">Interactive · masking demo</div>
+    <p class="ui" style="font:.92rem system-ui;margin-bottom:8px">Twelve ordinary values: 10, 11, 9, 10, 12, 10, 11, 9, 10, 10, 11, 9. Add the two extremes (60 and 80) and watch what happens.</p>
+    <div class="row"><button id="maskBtn" aria-pressed="false">Add the two extremes</button></div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><div class="ui" style="font:.8rem system-ui">Mean</div><div class="stat" id="mMean"></div></div>
+      <div class="card"><div class="ui" style="font:.8rem system-ui">Std</div><div class="stat" id="mStd"></div></div>
+      <div class="card"><div class="ui" style="font:.8rem system-ui">Z-score of 60 and 80 (threshold 3)</div><div class="stat" id="mZ">n/a</div></div>
+      <div class="card"><div class="ui" style="font:.8rem system-ui">Robust z, median / MAD</div><div class="stat" id="mR">n/a</div></div>
+    </div>
+    <p class="note" id="mNote">Showing the data without the extremes.</p>
+  </div>
+  <div class="call"><b>Takeaway.</b> Adding two extremes raises <b>both</b> the mean and the standard deviation, so their ordinary z-scores stay <b>below 3</b> and the rule misses them. The robust version, built from the median and the median absolute deviation (MAD), is barely affected and flags both clearly. Whenever outliers might be common, prefer robust statistics.</div>
+  <details><summary>Code: masking demo</summary><div><pre>base = np.array([10,11,9,10,12,10,11,9,10,10,11,9], dtype=float)
+with_outliers = np.append(base, [60, 80])
+
+def zscores(a):  return (a - a.mean()) / a.std()
+def robust_z(a):
+    med = np.median(a); mad = np.median(np.abs(a - med))
+    return 0.6745 * (a - med) / mad</pre><pre class="out">Without the two extremes: mean = 10.2, std = 0.9
+With    the two extremes: mean = 18.7, std = 21.3
+Z-score of the two extreme values (60 and 80): [1.94 2.88] (threshold 3)
+Robust z (median / MAD) for the same values   : [33.7 47.2]</pre></div></details>
+  <div id="q2"></div>
+
+  <h3>Weakness 2: anomalies that hide in combinations</h3>
+  <p>A listing can be ordinary in Mileage and ordinary in Price, yet <b>impossible as a pair</b>: a car with very high mileage and a very high price, or very low mileage and a very low price. Each value is inside the normal range of its feature, but not together.</p>
+  <div class="viz">
+    <div class="vt">Schematic · the diagonal band</div>
+    <svg id="jointSvg" viewBox="0 0 400 260" role="img" aria-label="Schematic scatter: a diagonal band of normal listings where price falls as mileage rises. Two starred listings sit inside each axis range but far from the band: one at high mileage and high price, one at low mileage and low price."></svg>
+    <div class="row" style="margin-top:6px"><button class="alt" id="projBtn" aria-pressed="false">Show each feature on its own</button></div>
+    <p class="note" id="projNote">Illustrative sketch of the pattern, not the plotted dataset. Stars are the two odd combinations.</p>
+  </div>
+  <div class="tw"><table>
+    <tr><th>Detector</th><th>Two joint anomalies flagged?</th></tr>
+    <tr><td>IQR / Z-score</td><td>False, False</td></tr>
+    <tr class="hl"><td>Isolation Forest</td><td>True, True</td></tr>
+  </table></div>
+  <p>Both stars sit far from the diagonal band that normal listings follow, so one-feature rules cannot see them. A method that looks at the features <b>together</b> can. That is why we need the multivariate detectors in the rest of this read.</p>
+  <details><summary>Code: building the joint anomalies</summary><div><pre>rs = np.random.RandomState(0)
+mil = rs.uniform(10, 140, 400)
+price = 150 - 0.8 * mil + rs.normal(0, 5, 400)      # price falls as mileage rises
+joint = np.array([[130, 140], [15, 40]])            # high/high and low/low
+syn = np.vstack([np.c_[mil, price], joint])
+s = pd.DataFrame(syn, columns=["Mileage", "Price"])
+
+uni_syn = iqr_flags(s.Mileage) | iqr_flags(s.Price) | z_flags(s.Mileage) | z_flags(s.Price)
+iso_syn = IsolationForest(contamination=0.02, random_state=0).fit(syn)
+multi_syn = iso_syn.predict(syn) == -1</pre></div></details>
+  <div class="card"><h4>Try it yourself</h4><p style="margin-bottom:8px">Stress-test the simple detectors with an AI assistant:</p>
+  <div class="prompt">"Write Python code that generates 1,000 normal values from N(50, 5), then adds k outliers at value 100 for k = 1, 5, 20, 50, 100. For each k, compute the Z-score rule (|z| &gt; 3), the IQR rule, and the robust z-score rule (median/MAD, threshold 3.5), and plot how many of the planted outliers each rule catches as k grows. Explain why the Z-score rule fails first, and at what contamination level each rule breaks down."</div>
+  <p style="margin:10px 0 0;font-size:.95rem">Then ask yourself: at what share of outliers does each rule stop working? If DriveDeal expected 15% suspicious listings, which would you trust?</p></div>
+</section>
+
+<section id="iforest">
+  <div class="num">Part 4</div>
+  <h2>Isolation Forest: unusual points are easy to separate</h2>
+  <p>Imagine playing "20 questions" with random questions to pick one listing out of the crowd. A listing in a <b>dense crowd</b> needs <b>many</b> questions. A listing <b>far from the crowd</b> can be separated in <b>a few</b>.</p>
+  <h3>An isolation tree</h3>
+  <ol>
+    <li>Pick a <b>random feature</b>.</li>
+    <li>Pick a <b>random split value</b> between that feature's minimum and maximum.</li>
+    <li>Split the data into two sides, and repeat on each side.</li>
+    <li>Stop when a point is alone (or at a depth limit).</li>
+  </ol>
+  <p>The depth at which a point ends up alone (its <b>path length</b>) measures how easy it was to isolate. Unusual points are isolated <b>sooner</b> (shallow), normal points <b>later</b> (deep).</p>
+
+  <div class="viz">
+    <div class="vt">Interactive · play the isolation game</div>
+    <p style="font:.92rem system-ui;margin:0 0 8px">Pick a target. Random cuts keep only the side containing it, until it is alone.</p>
+    <svg id="isoSvg" viewBox="0 0 100 100" style="width:100%;max-width:460px;display:block;margin:auto;background:var(--sky-xl);border-radius:10px" role="img" aria-label="Illustrative scatter plot with a diagonal band of ordinary points and one distant outlier. Random cuts are drawn as lines."></svg>
+    <div class="row" style="margin-top:10px">
+      <button id="isoOut">Isolate the outlier</button>
+      <button id="isoTyp" class="alt">Isolate a typical point</button>
+    </div>
+    <p class="note" id="isoRes" aria-live="polite">Illustrative synthetic points. Choose a target to start.</p>
+  </div>
+
+  <h3>From one tree to a forest</h3>
+  <p>An <b>Isolation Forest</b> builds many such random trees, each on a small random <b>sub-sample</b> of the data (256 points by default). A point's score uses its <b>average depth</b> across the trees:</p>
+  <div class="formula"><i>s</i>(<i>x</i>) = 2<sup>−E[<i>h</i>(<i>x</i>)] / <i>c</i>(ψ)</sup></div>
+  <p><i>E[h(x)]</i> is the average path length and <i>c(ψ)</i> is a normaliser: the average path length of an unsuccessful search in a tree built on ψ points. Sub-sampling is not a train/test split. It simply keeps each tree small and cheap.</p>
+  <div class="viz">
+    <div class="vt">Interactive · score calculator (c = 10.2, i.e. 256-point sub-samples)</div>
+    <label for="dSl" class="ui" style="font:.9rem system-ui">Average path length: <b id="dVal">3.2</b></label>
+    <input type="range" id="dSl" min="1" max="15" step="0.1" value="3.2">
+    <div style="position:relative;height:26px;border-radius:8px;margin-top:12px;background:linear-gradient(90deg,var(--sky-xl) 0%,var(--sky-l) 50%,var(--sky) 100%)" aria-hidden="true">
+      <div id="needle" style="position:absolute;top:-4px;bottom:-4px;width:4px;background:var(--sky-dd);border-radius:2px;left:50%"></div>
+    </div>
+    <div class="row ui" style="justify-content:space-between;font:.78rem system-ui;color:var(--ink2)"><span>0.0</span><span>0.5 nothing stands out</span><span>1.0</span></div>
+    <p style="margin:10px 0 0;font:1rem system-ui">Score = <b id="sVal"></b> <span class="pill" id="sTag"></span></p>
+    <p class="note">Presets from the knowledge check: A (depth 3.2) scores about 0.80, B (depth 11.5) about 0.46.</p>
+    <div class="row"><button class="alt" onclick="setD(3.2)">Listing A: 3.2</button><button class="alt" onclick="setD(11.5)">Listing B: 11.5</button></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h4>Close to 1</h4>Much shallower than normal. Likely an anomaly.</div>
+    <div class="card"><h4>About 0.5</h4>Nothing stands out.</div>
+    <div class="card"><h4>Well below 0.5</h4>Deeper than normal. Likely normal.</div>
+  </div>
+  <div id="q3"></div>
+
+  <h3>Building a small Isolation Forest from scratch</h3>
+  <div class="viz">
+    <div class="vt">Step explorer</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">1 · c(n)</button>
+      <button role="tab" aria-selected="false">2 · Build a tree</button>
+      <button role="tab" aria-selected="false">3 · Path length</button>
+      <button role="tab" aria-selected="false">4 · Forest scores</button>
+      <button role="tab" aria-selected="false">5 · Check</button>
+    </div>
+    <div class="panel">
+      <p>The score compares a point's depth with the depth we would <i>expect</i> for a typical point. That expected depth is <code>c(n)</code>. For <code>n ≤ 1</code> it is 0, for <code>n = 2</code> it is 1, and otherwise <code>2·(ln(n−1)+γ) − 2(n−1)/n</code>, where γ is the Euler–Mascheroni constant. It is used twice: to fix the depth of leaves that still hold several points, and to scale the final score.</p>
+      <pre>EULER = 0.5772156649
+def c_factor(n):
+    if n &lt;= 1: return 0.0
+    if n == 2: return 1.0
+    return 2 * (np.log(n - 1) + EULER) - 2 * (n - 1) / n</pre>
+    </div>
+    <div class="panel" hidden>
+      <p><code>build_tree</code> plays "20 questions" on one random sub-sample. It stops with a <b>leaf</b> if the tree is deep enough or one point is left. Otherwise it picks a random feature, finds its min and max (no spread means a leaf), picks a random threshold between them, sends points below it left and the rest right, and <b>calls itself</b> on each side with <code>depth + 1</code> (recursion). A node is <code>("node", feature, threshold, left, right)</code>; a leaf is <code>("leaf", count)</code>.</p>
+      <pre>def build_tree(data, depth, max_depth, rng):
+    n = len(data)
+    if depth &gt;= max_depth or n &lt;= 1:
+        return ("leaf", n)
+    j = rng.randint(data.shape[1])
+    lo, hi = data[:, j].min(), data[:, j].max()
+    if lo == hi:
+        return ("leaf", n)
+    split = rng.uniform(lo, hi)
+    mask = data[:, j] &lt; split
+    return ("node", j, split,
+            build_tree(data[mask], depth + 1, max_depth, rng),
+            build_tree(data[~mask], depth + 1, max_depth, rng))</pre>
+    </div>
+    <div class="panel" hidden>
+      <p><code>tree_path</code> drops one point down a tree and returns its path length. At a leaf it returns the depth reached plus <code>c_factor(count)</code>, since a leaf holding several points means the tree stopped before isolating them. At a node it goes left or right and adds 1 to the depth. A short path is the sign of an anomaly.</p>
+      <pre>def tree_path(x, node, depth=0):
+    if node[0] == "leaf":
+        return depth + c_factor(node[1])
+    _, j, split, left, right = node
+    return tree_path(x, left if x[j] &lt; split else right, depth + 1)</pre>
+    </div>
+    <div class="panel" hidden>
+      <p><code>forest_scores</code> uses sub-samples of at most 256 points (<code>psi</code>), grows trees to <code>ceil(log2(psi))</code> depth, builds <code>n_trees</code> trees on different random sub-samples, averages each point's path length, and scores it as <code>2 ** (−depth / c_factor(psi))</code>.</p>
+      <pre>def forest_scores(X, n_trees=100, psi=256, seed=0):
+    rng = np.random.RandomState(seed)
+    n = len(X); psi = min(psi, n)
+    max_depth = int(np.ceil(np.log2(psi)))
+    trees = [build_tree(X[rng.choice(n, psi, replace=False)], 0, max_depth, rng)
+             for _ in range(n_trees)]
+    depth = np.array([np.mean([tree_path(x, t) for t in trees]) for x in X])
+    return 2 ** (-depth / c_factor(psi)), depth
+
+score_mine, depth_mine = forest_scores(Xc)</pre><pre class="out">First 5 scores: [0.52  0.456 0.402 0.423 0.58 ]</pre>
+    </div>
+    <div class="panel" hidden>
+      <p>Compared with scikit-learn's <code>IsolationForest</code> using Spearman rank correlation (scikit-learn's <code>score_samples</code> is the negative of our score):</p>
+      <pre>sk_if = IsolationForest(n_estimators=100, random_state=0).fit(Xc)
+sk_score = -sk_if.score_samples(Xc)
+spearmanr(score_mine, sk_score).correlation</pre>
+      <div class="grid"><div class="card"><div class="stat">0.979</div>rank agreement with scikit-learn</div><div class="card"><div class="stat">4.4 → 13.8</div>average depth: most anomalous point → most normal point</div></div>
+    </div>
+  </div>
+  <div class="call"><b>Takeaways.</b> Our short forest ranks listings almost the same as scikit-learn's. The score map shows low scores in the dense band and high scores for isolated listings, with no labels needed. Only the <b>ranking</b> is meaningful. Turning it into a flag needs a <b>threshold</b>, which is a business decision.</div>
+
+  <h3>scikit-learn's <code>IsolationForest</code></h3>
+  <div class="tw"><table>
+    <tr><th>Parameter</th><th>Meaning</th></tr>
+    <tr><td><code>n_estimators</code></td><td>Number of trees.</td></tr>
+    <tr><td><code>max_samples</code></td><td>Sub-sample per tree (<code>"auto"</code> means 256 or fewer).</td></tr>
+    <tr><td><code>contamination</code></td><td>Share of data to flag, which sets the threshold. This is the <b>review budget</b>.</td></tr>
+    <tr><td><code>max_features</code></td><td>Number of features each tree may use.</td></tr>
+  </table></div>
+  <p><code>predict</code> returns <b>−1 for anomalies and +1 for normal</b> points. One shared budget is used for every method so the pictures are comparable.</p>
+  <details><summary>Code: fit with a review budget and build a score map</summary><div><pre>CONTAM = 0.06   # review budget: a business choice, not a statistical fact
+
+iso = IsolationForest(n_estimators=300, contamination=CONTAM, random_state=0).fit(Xc)
+flag_if = iso.predict(Xc) == -1
+
+def make_grid(X, n=250, pad=0.1):
+    lo, hi = X.min(axis=0), X.max(axis=0); span = hi - lo
+    gx = np.linspace(lo[0] - pad * span[0], hi[0] + pad * span[0], n)
+    gy = np.linspace(lo[1] - pad * span[1], hi[1] + pad * span[1], n)
+    xx, yy = np.meshgrid(gx, gy)
+    return xx, yy, np.c_[xx.ravel(), yy.ravel()]
+
+xx, yy, grid_pts = make_grid(Xc)
+zz = iso.decision_function(grid_pts).reshape(xx.shape)   # higher = more normal, 0 = boundary</pre><pre class="out">Isolation Forest flagged 55 of 908 listings</pre></div></details>
+
+  <h3>Weakness: axis-parallel splits</h3>
+  <p>Every split is parallel to an axis, so the score contours show <b>rectangular banding</b>. Two points at the same distance from the data can get different scores depending on whether they sit along an axis direction or diagonally off it. This is most visible for diagonal structure like the Mileage and Price band. Variants such as the Extended Isolation Forest use randomly rotated cuts to reduce it.</p>
+  <div class="viz">
+    <div class="vt">Schematic · rectangular steps vs a diagonal band</div>
+    <svg viewBox="0 0 420 200" role="img" aria-label="Left: a diagonal band with a stair-step rectangular boundary. Right: the same band with a smooth diagonal boundary.">
+      <g transform="translate(10,10)"><text x="90" y="8" text-anchor="middle" font-size="11" fill="#12324a">Axis-parallel cuts</text>
+        <polygon points="10,160 10,130 40,130 40,100 70,100 70,70 100,70 100,40 130,40 130,20 170,20 170,50 140,50 140,80 110,80 110,110 80,110 80,140 50,140 50,170 10,170" fill="#cfe8f7" stroke="#1c6c9c" stroke-width="2"/></g>
+      <g transform="translate(220,10)"><text x="90" y="8" text-anchor="middle" font-size="11" fill="#12324a">What the data actually looks like</text>
+        <polygon points="10,168 10,148 160,20 170,36 30,176" fill="#cfe8f7" stroke="#1c6c9c" stroke-width="2" stroke-dasharray="5 3"/></g>
+    </svg>
+    <p class="note">Conceptual illustration only.</p>
+  </div>
+  <div class="card"><h4>Try it yourself</h4>
+  <div class="prompt">"Using my DataFrame `data` with Mileage and Price, write code that rotates the (standardised) points by 0, 30 and 60 degrees, fits sklearn IsolationForest and LocalOutlierFactor on each rotated version with the same contamination, and measures how many of the flagged points are the same across rotations (Jaccard overlap, after mapping back to the original points). Draw the Isolation Forest score maps for each rotation. Explain what this says about axis-parallel bias, and describe how the Extended Isolation Forest tries to fix it."</div>
+  <p style="margin:10px 0 0;font-size:.95rem">Which detector is more stable under rotation? How would this matter for a diagonal normal pattern like DriveDeal's?</p></div>
+</section>
+
+<section id="svm">
+  <div class="num">Part 5</div>
+  <h2>One-Class SVM: draw a boundary around "normal"</h2>
+  <p>A <b>One-Class classifier</b> is trained on data from a <b>single</b> class (here, normal listings) and learns a boundary around it. Anything outside is an anomaly.</p>
+  <div class="grid">
+    <div class="card"><h4>The bubble</h4>Picture the smallest "bubble" that holds most normal points. We let some points sit outside (suspected outliers), paying a <b>penalty (slack)</b> for each. A <b>tight</b> bubble is small but many points pay slack. A <b>loose</b> bubble has no slack but swallows the outliers.</div>
+    <div class="card"><h4>The kernel trick</h4>With an <b>RBF kernel</b>, the bubble lives in a higher-dimensional space. Drawn back in the original plane it can take <b>any curved shape</b>, which suits non-spherical data like our diagonal band.</div>
+  </div>
+  <div class="tw"><table>
+    <tr><th>Parameter</th><th>Meaning</th></tr>
+    <tr><td><code>nu</code></td><td>An <b>upper bound on the fraction of training points treated as outliers</b> and a lower bound on the fraction of support vectors. Roughly: the share you are willing to flag.</td></tr>
+    <tr><td><code>gamma</code></td><td>How local the RBF kernel is. <b>Small</b> gives a smooth, loose boundary. <b>Large</b> gives a wiggly boundary hugging individual points (overfitting).</td></tr>
+  </table></div>
+  <p><b>Scale the features first.</b> An RBF kernel is based on distances, so a feature with big numbers dominates unless we standardise.</p>
+  <div class="viz">
+    <div class="vt">Interactive · what gamma does (schematic)</div>
+    <label for="gSl" style="font:.9rem system-ui">gamma setting: <b id="gVal">0.5 (medium)</b></label>
+    <input type="range" id="gSl" min="0" max="2" step="1" value="1" aria-valuetext="medium">
+    <svg id="svmSvg" viewBox="0 0 400 240" role="img" aria-label="Schematic of a One-Class SVM boundary around a diagonal band of points, changing with gamma." style="width:100%;max-width:480px;display:block;margin:6px auto 0"></svg>
+    <p class="note" id="gNote"></p>
+  </div>
+  <div class="call"><b>On DriveDeal.</b> Small gamma (0.05) is smooth and loose, and can include mild anomalies. Large gamma (5) wraps individual points and may flag ordinary listings in the thin parts of the band. A medium gamma follows the diagonal band without chasing points. <code>gamma="scale"</code> (default) is a sensible start. The number flagged stays close to <code>nu</code> times the number of listings.</div>
+  <details><summary>Code: scaling and three gamma values</summary><div><pre>scaler = StandardScaler().fit(Xc)
+Xs = scaler.transform(Xc)
+grid_s = scaler.transform(grid_pts)
+
+for g in [0.05, 0.5, 5]:
+    m = OneClassSVM(kernel="rbf", gamma=g, nu=CONTAM).fit(Xs)
+    flagged = m.predict(Xs) == -1
+    zz = m.decision_function(grid_s).reshape(xx.shape)</pre></div></details>
+  <div id="q4"></div>
+  <h3>Limitations</h3>
+  <ul>
+    <li>The <b>kernel and gamma</b> matter a lot, and there are no labels to tune them against.</li>
+    <li>Training time grows quickly with the number of points, so it does not scale to millions of rows.</li>
+    <li>It needs scaled features, and inherits the usual SVM quirks.</li>
+  </ul>
+</section>
+
+<section id="lof">
+  <div class="num">Part 6</div>
+  <h2>Local Outlier Factor: unusual compared with your neighbours</h2>
+  <p>Suppose DriveDeal has a <b>very tight</b> group of mass-market hatchbacks (priced almost the same) and a <b>loose</b> group of luxury cars (prices spread widely). A listing priced a little away from the hatchbacks is odd for hatchbacks, even though the same gap would be normal among luxury cars. A global distance threshold cannot tell the two apart. We need a <b>local</b> notion of "unusual".</p>
+  <p><b>LOF's idea:</b> compare each point's <b>local density</b> with the local density of <b>its neighbours</b>. A point in a sparse spot surrounded by dense neighbours is an anomaly.</p>
+  <h3>Building blocks (k = number of neighbours)</h3>
+  <div class="viz">
+    <div class="vt">Step explorer</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">k-distance</button>
+      <button role="tab" aria-selected="false">Reachability</button>
+      <button role="tab" aria-selected="false">lrd</button>
+      <button role="tab" aria-selected="false">LOF</button>
+    </div>
+    <div class="panel"><p>The distance from A to its <i>k</i>-th nearest neighbour. A large k-distance means the point is far from others.</p></div>
+    <div class="panel" hidden><div class="formula">reach-dist<sub>k</sub>(A, B) = max{ k-distance(B), d(A, B) }</div><p>This smooths out tiny distances. If A is very close to B, we still count at least B's own neighbourhood size.</p></div>
+    <div class="panel" hidden><div class="formula">lrd<sub>k</sub>(A) = ( (1/k) · Σ<sub>B∈N<sub>k</sub>(A)</sub> reach-dist<sub>k</sub>(A, B) )<sup>−1</sup></div><p>The inverse of the <b>average reachability distance</b> from A to its k neighbours.</p></div>
+    <div class="panel" hidden><div class="formula">LOF<sub>k</sub>(A) = [ (1/k) · Σ<sub>B∈N<sub>k</sub>(A)</sub> lrd<sub>k</sub>(B) ] / lrd<sub>k</sub>(A)</div><p>The average lrd of A's neighbours divided by A's own lrd.</p></div>
+  </div>
+  <div class="viz">
+    <div class="vt">Interactive · how to read an LOF value</div>
+    <label for="lSl" style="font:.9rem system-ui">LOF value: <b id="lVal">1.0</b></label>
+    <input type="range" id="lSl" min="0.5" max="5.5" step="0.1" value="1">
+    <p id="lTxt" style="font:1rem system-ui;margin:10px 0 0" aria-live="polite"></p>
+    <p class="note">There is no universal cut-off. A value just above 1 on the edge of a dense region is normal, whereas something like 2.7 usually deserves a look. The threshold is set by the use case and domain experts.</p>
+  </div>
+
+  <h3>LOF from scratch: P and Q</h3>
+  <p>A test dataset has a tight cluster (150 points around (0, 0)), a loose cluster (150 points around (6, 0)), and two special points: <b>P</b>, 1.0 away from the tight cluster, and <b>Q</b>, far above the loose cluster. We rank all points (rank 1 = most anomalous) by a global measure (k-distance alone) and by LOF, with K = 10.</p>
+  <div class="viz">
+    <div class="vt">Rank comparison · lower rank = more anomalous</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">Point P</button>
+      <button role="tab" aria-selected="false">Point Q</button>
+    </div>
+    <div class="panel"><div class="bars" id="pBars"></div><p class="note">P looks unremarkable by k-distance (rank 49), because the loose cluster has many points with larger k-distances. LOF ranks it first (LOF = 5.22), because its neighbours are far denser than it is.</p></div>
+    <div class="panel" hidden><div class="bars" id="qBars"></div><p class="note">Q is far from everything, so both measures flag it (LOF = 4.39).</p></div>
+  </div>
+  <div class="call"><b>Takeaway.</b> Comparing with <b>local</b> density catches P, which "far from everything" misses. Our implementation matches scikit-learn's with a largest difference of about 3.2 × 10<sup>−9</sup>.</div>
+  <details><summary>Code: LOF from scratch</summary><div><pre>def lof_scratch(X, k):
+    D = squareform(pdist(X)); n = len(X)
+    idx = np.argsort(D, axis=1)[:, 1:k + 1]           # k nearest neighbours (skip self)
+    rows = np.arange(n)[:, None]
+    kdist = D[np.arange(n), idx[:, -1]]               # k-distance
+    reach = np.maximum(D[rows, idx], kdist[idx])      # reachability distance
+    lrd = 1.0 / reach.mean(axis=1)                    # local reachability density
+    return lrd[idx].mean(axis=1) / lrd, kdist         # LOF and k-distance
+
+rs = np.random.RandomState(1)
+tight = rs.normal([0, 0], 0.15, (150, 2))
+loose = rs.normal([6, 0], 1.2, (150, 2))
+P, Q = np.array([[1.0, 0.0]]), np.array([[6.0, 5.5]])
+pts = np.vstack([tight, loose, P, Q]); iP, iQ = len(pts) - 2, len(pts) - 1
+
+K = 10
+lof_mine, kdist = lof_scratch(pts, K)
+sk = LocalOutlierFactor(n_neighbors=K).fit(pts)</pre></div></details>
+  <div id="q5"></div>
+
+  <h3>LOF on DriveDeal's listings</h3>
+  <p>Because LOF is distance-based, we use the <b>scaled</b> features (<code>n_neighbors=20</code>, same budget).</p>
+  <div class="grid">
+    <div class="card"><div class="stat">55</div>listings flagged</div>
+    <div class="card"><div class="stat">1.43 – 4.30</div>LOF range of flagged listings</div>
+    <div class="card"><div class="stat">1.02</div>median LOF overall</div>
+  </div>
+  <p>Most listings have LOF close to 1. Points on the border of the dense band sit slightly above 1 and are not anomalies. Only the far tail is clearly high.</p>
+  <details><summary>Code</summary><div><pre>lof_model = LocalOutlierFactor(n_neighbors=20, contamination=CONTAM)
+flag_lof = lof_model.fit_predict(Xs) == -1
+lof_vals = -lof_model.negative_outlier_factor_</pre></div></details>
+  <h3>Limitations</h3>
+  <ul>
+    <li>Choosing <b>k</b> matters; a larger k gives steadier results.</li>
+    <li>Choosing the <b>threshold</b> is a judgement call.</li>
+    <li>Distance-based, so it degrades in <b>high dimensions</b>.</li>
+    <li>The neighbour search is expensive on large data.</li>
+    <li>By default it can only score the data it was fitted on. To score <b>new</b> points, use <code>novelty=True</code>.</li>
+  </ul>
+</section>
+
+<section id="compare">
+  <div class="num">Part 7</div>
+  <h2>Elliptic Envelope and a fair comparison</h2>
+  <p><b>Elliptic Envelope</b> is a simple parametric method. It fits a <b>robust Gaussian</b> (a robust covariance estimate not pulled by outliers) and flags points with a large Mahalanobis distance, i.e. points outside an ellipse around the data. It works when normal data forms <b>one blob</b>, and fails for several blobs, curves or very different densities, because one ellipse cannot represent them.</p>
+  <h3>The experiment</h3>
+  <p>Instead of judging by pictures, five toy datasets get <b>planted outliers</b>, so the truth is known. Methods are scored by <b>AUC</b>: how well anomaly scores rank true outliers above normal points (1.0 is perfect, 0.5 is chance). Every method gets the same flag budget, 15%.</p>
+  <div class="grid">
+    <div class="card"><div class="stat">255</div>normal points per dataset</div>
+    <div class="card"><div class="stat">45</div>planted outliers (15% of 300)</div>
+  </div>
+  <div class="viz">
+    <div class="vt">Explorer · the five shapes of "normal"</div>
+    <div class="tabs" role="tablist" data-tabs>
+      <button role="tab" aria-selected="true">One dense blob</button>
+      <button role="tab" aria-selected="false">Two blobs</button>
+      <button role="tab" aria-selected="false">Dense + spread</button>
+      <button role="tab" aria-selected="false">Two moons</button>
+      <button role="tab" aria-selected="false">Uniform</button>
+    </div>
+    <div class="panel"><p>Both centres are the same, so it is one blob. Typical winner: <b>any method</b>; Elliptic Envelope is natural.</p></div>
+    <div class="panel" hidden><p>Two blobs of equal spread. Typical winner: <b>most methods work</b>; Elliptic Envelope struggles.</p></div>
+    <div class="panel" hidden><p>Two blobs, one tight and one loose. Typical winner: <b>LOF and Isolation Forest</b>.</p></div>
+    <div class="panel" hidden><p>Two curved arcs. Typical winner: <b>LOF, One-Class SVM and Isolation Forest</b>.</p></div>
+    <div class="panel" hidden><p>Points spread evenly everywhere, with no real structure. Typical winner: <b>none</b>. There is no notion of "normal", so there is nothing to detect.</p></div>
+  </div>
+  <details><summary>Code: datasets, planted outliers and detectors</summary><div><pre>n_samples, frac = 300, 0.15
+n_out = int(frac * n_samples); n_in = n_samples - n_out
+bp = dict(random_state=0, n_samples=n_in, n_features=2)
+
+datasets = [
+  ("One dense blob", make_blobs(centers=[[0,0],[0,0]], cluster_std=0.5, **bp)[0]),
+  ("Two blobs",      make_blobs(centers=[[2,2],[-2,-2]], cluster_std=[0.5,0.5], **bp)[0]),
+  ("Dense + spread", make_blobs(centers=[[2,2],[-2,-2]], cluster_std=[1.5,0.3], **bp)[0]),
+  ("Two moons",      4.0 * (make_moons(n_samples=n_in, noise=0.05, random_state=0)[0] - np.array([0.5, 0.25]))),
+  ("Uniform",        14.0 * (np.random.RandomState(42).rand(n_in, 2) - 0.5)),
+]
+outliers = np.random.RandomState(42).uniform(-6, 6, (n_out, 2))
+y_true = np.r_[np.zeros(n_in), np.ones(n_out)]
+
+factories = {
+  "Elliptic Envelope": lambda: EllipticEnvelope(contamination=frac, random_state=42),
+  "One-Class SVM":     lambda: OneClassSVM(nu=frac, kernel="rbf", gamma=0.1),
+  "Isolation Forest":  lambda: IsolationForest(contamination=frac, random_state=42),
+  "LOF":               lambda: LocalOutlierFactor(n_neighbors=35, contamination=frac),
+}
+
+# per dataset and method: fit, take anomaly score (higher = more anomalous)
+# LOF: fit_predict + -negative_outlier_factor_ ; others: fit, predict, -score_samples
+auc.loc[dname, mname] = roc_auc_score(y_true, score)</pre></div></details>
+  <div class="viz">
+    <div class="vt">Average AUC per method</div>
+    <div class="bars" id="aucBars"></div>
+    <p class="note">On the uniform data every method does badly, so keep that row in mind when reading averages. Check your own heatmap for per-dataset values.</p>
+  </div>
+  <ul>
+    <li><b>Elliptic Envelope</b> is strong on the single dense blob (it matches its Gaussian assumption) and weak on the moons and mixed densities.</li>
+    <li><b>One-Class SVM</b> can follow curved shapes, but depends on <code>gamma</code> and scale.</li>
+    <li><b>Isolation Forest</b> and <b>LOF</b> are consistently decent, which is why they are the usual first choices.</li>
+    <li>On <b>uniform</b> data all fail. Anomaly detection assumes normal data has some structure.</li>
+  </ul>
+</section>
+
+<section id="queue">
+  <div class="num">Part 8</div>
+  <h2>Back to DriveDeal: a consensus review queue</h2>
+  <p>No single method is always right, and reviewers have limited time. So Rohan combines the methods: run <b>four detectors</b> with the <b>same budget</b>, count how many flag each listing (its <b>votes</b>, 0 to 4), and put listings with <b>more votes</b> at the top.</p>
+  <details><summary>Code: fit, vote and queue</summary><div><pre>ee = EllipticEnvelope(contamination=CONTAM, random_state=0).fit(Xs)
+ocsvm = OneClassSVM(kernel="rbf", gamma="scale", nu=CONTAM).fit(Xs)
+
+flags = {
+  "Isolation Forest":  flag_if,
+  "One-Class SVM":     ocsvm.predict(Xs) == -1,
+  "LOF":               flag_lof,
+  "Elliptic Envelope": ee.predict(Xs) == -1,
+}
+votes = sum(f.astype(int) for f in flags.values())
+
+# Jaccard overlap of each pair of flagged sets
+jac = pd.DataFrame([[(flags[a] &amp; flags[b]).sum() / max((flags[a] | flags[b]).sum(), 1)
+                     for b in names] for a in names], index=names, columns=names)
+
+queue = data.assign(votes=votes, if_score=-iso.score_samples(Xc)) \
+            .sort_values(["votes", "if_score"], ascending=False)</pre></div></details>
+  <div class="viz">
+    <div class="vt">Listings by number of votes</div>
+    <div class="bars" id="voteBars"></div>
+    <p class="note">796 of 908 listings get no vote. Listings flagged by three or four detectors are high-confidence anomalies. Listings flagged by one method alone are weaker leads.</p>
+  </div>
+  <div class="viz">
+    <div class="vt">Agreement between detectors (Jaccard overlap)</div>
+    <div class="tw"><table class="hm" id="jacT"></table></div>
+    <p class="note">1 means identical flags, 0 means no overlap. Elliptic Envelope disagrees most with the others, flagging largely different listings.</p>
+  </div>
+  <div class="viz">
+    <div class="vt">The review queue · top 15 (sorted by votes, then Isolation Forest score)</div>
+    <div class="tw"><table id="qT"></table></div>
+    <p class="note">Ties in votes are broken by the Isolation Forest score. The top rows are what reviewers look at first, which respects Nandini's limit on reviewer time.</p>
+  </div>
+  <h3>Do the one-feature rules add anything?</h3>
+  <div class="viz">
+    <div class="vt">IQR/Z flag (rows) vs votes (columns)</div>
+    <div class="tw"><table class="hm" id="xT"></table></div>
+    <p class="note">The crosstab shows where the simple rules overlap with the consensus, and where the multivariate methods find listings the one-feature rules miss: 47 listings with 1 to 3 votes (15 + 12 + 20) were not flagged by IQR or Z-score at all.</p>
+  </div>
+  <div class="call"><b>No labels yet.</b> The consensus is a better-informed ranking, not proof. The reviewers' verdicts will be the first real labels DriveDeal gets.</div>
+  <h3>How stable is the ranking?</h3>
+  <p>A good detector should not change its mind because of the random seed. Rerun Isolation Forest with several seeds (five here) and measure the overlap of the top-flagged listings.</p>
+</section>
+
+<section id="novelty">
+  <div class="num">Part 9</div>
+  <h2>Screening new listings (novelty detection)</h2>
+  <p>Each <b>new</b> listing must be checked against what DriveDeal already knows. The reference data is the existing catalogue. Fit on 80% of the listings (726) and score the held-out 20% (182), plus three hand-made listings. LOF needs <code>novelty=True</code> to score points it was not fitted on.</p>
+  <div class="call"><b>No leakage.</b> The scaler learns its mean and standard deviation from the reference listings only. Learning the scaling from new data would leak information a real incoming listing would not have. Isolation Forest works on raw values, while the distance-based methods get scaled input.</div>
+  <details><summary>Code: fit on the reference catalogue</summary><div><pre>rs = np.random.RandomState(0)
+perm = rs.permutation(len(Xc)); cut = int(0.8 * len(Xc))
+tr, te = perm[:cut], perm[cut:]
+
+sc_tr = StandardScaler().fit(Xc[tr])
+Xtr_s, Xte_s = sc_tr.transform(Xc[tr]), sc_tr.transform(Xc[te])
+
+models = {
+  "Isolation Forest":  (IsolationForest(n_estimators=300, contamination=CONTAM, random_state=0).fit(Xc[tr]), False),
+  "One-Class SVM":     (OneClassSVM(kernel="rbf", gamma="scale", nu=CONTAM).fit(Xtr_s), True),
+  "LOF (novelty)":     (LocalOutlierFactor(n_neighbors=20, contamination=CONTAM, novelty=True).fit(Xtr_s), True),
+  "Elliptic Envelope": (EllipticEnvelope(contamination=CONTAM, random_state=0).fit(Xtr_s), True),
+}</pre></div></details>
+  <div class="viz">
+    <div class="vt">Share of held-out listings flagged (budget = 6%)</div>
+    <div class="bars" id="heldBars"></div>
+    <p class="note">These should be close to the budget. A large jump on a new batch of listings would signal drift, for example a wave of EV listings.</p>
+  </div>
+  <div class="viz">
+    <div class="vt">Interactive · three hand-made listings</div>
+    <div class="tabs" role="tablist" data-tabs id="newTabs"></div>
+    <div id="newOut"></div>
+    <p class="note">Values are built from the data's own quantiles, maximum and median, so they fit whatever scale the data has. The extreme-mileage listing is 20% beyond the largest mileage seen.</p>
+  </div>
+  <h3>Error or new kind of car?</h3>
+  <p>This is where the error vs novelty distinction pays off. A flagged listing goes to a reviewer, who decides:</p>
+  <div class="grid">
+    <div class="card"><h4>Error or scam</h4>Fix or remove it.</div>
+    <div class="card"><h4>Genuinely new kind of car</h4>Keep it and <b>learn from it</b>, for example by giving the new group its own pricing model. Once real EV listings are confirmed, they can be clustered into segments of their own.</div>
+  </div>
+</section>
+
+<section id="choose">
+  <div class="num">Part 9½</div>
+  <h2>Choosing a detector</h2>
+  <div class="viz">
+    <div class="vt">Filter the comparison</div>
+    <div class="row" id="filt"></div>
+    <div class="tw"><table id="cT"></table></div>
+  </div>
+  <div class="card"><h4>Practical advice</h4><ul>
+    <li>Start with <b>Isolation Forest</b> and <b>LOF</b>. Add the others for a second opinion.</li>
+    <li>Use <b>one shared budget</b>, <b>scale</b> features for distance-based methods, and look at <b>rankings</b>, not only flags.</li>
+    <li>Combine methods with <b>votes</b>, check <b>stability</b>, and let <b>reviewers' verdicts</b> become your first labels.</li>
+    <li>Decide whether you are doing <b>outlier</b> or <b>novelty</b> detection before you pick the API.</li>
+  </ul></div>
+</section>
+
+<section id="wrap">
+  <div class="num">Wrap-up</div>
+  <h2>Back to Nandini's desk</h2>
+  <p>Rohan brings Nandini a small system instead of a single model.</p>
+  <div class="grid">
+    <div class="card"><h4>A ranked review queue</h4>Four detectors vote on every listing. Reviewers start with the most-flagged listings: the 1,000,000 mileage, the four-year-old car priced like a new one, and listings that are normal in each field and impossible in combination.</div>
+    <div class="card"><h4>A check for new listings</h4>Every incoming listing is scored against the approved catalogue. A sudden rise in flagged listings signals the market is changing, for example more EVs arriving.</div>
+    <div class="card"><h4>Two kinds of outcome</h4>Reviewers mark each flag as an <b>error to fix</b> or a <b>real, new kind of car to learn from</b>. The second group feeds a pricing model of its own for EVs.</div>
+    <div class="card"><h4>Honest limits</h4>There are no labels yet, the budget is a business choice, and every method has blind spots. The consensus and the reviewers' verdicts make the system trustworthy over time.</div>
+  </div>
+  <div class="card story"><p style="margin:0">Nandini asks only one question: "How do we know it's getting better?" Rohan's answer: "Your reviewers' decisions. Every verdict is a label we never had before."</p></div>
+
+  <h3>Key takeaways</h3>
+  <div class="viz">
+    <div class="vt">Tap a card to reveal the formula or detail</div>
+    <div id="keys"></div>
+  </div>
+</section>
+</main>
+
+<footer>Anomaly detection post read<small>Finding the unusual in data</small></footer>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
+/* nav + progress */
+const secs=[["story","Story"],["terms","Terms"],["data","Data"],["simple","Simple rules"],["iforest","Isolation Forest"],["svm","One-Class SVM"],["lof","LOF"],["compare","Comparison"],["queue","Review queue"],["novelty","New listings"],["choose","Choosing"],["wrap","Wrap-up"]];
+$("#nav").insertAdjacentHTML("beforeend",secs.map(s=>`<a href="#${s[0]}" data-s="${s[0]}">${s[1]}</a>`).join(""));
+function onScroll(){
+  const h=document.documentElement;$("#bar").style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+"%";
+  let cur=secs[0][0];secs.forEach(s=>{if($("#"+s[0]).getBoundingClientRect().top<120)cur=s[0]});
+  $$("nav a").forEach(a=>a.classList.toggle("on",a.dataset.s===cur));
+}
+addEventListener("scroll",onScroll,{passive:true});onScroll();
+
+/* tabs */
+function initTabs(root){
+  const tabs=$$("[role=tab]",root), panels=$$(":scope > .panel",root.parentElement);
+  tabs.forEach((t,i)=>{
+    t.addEventListener("click",()=>sel(i));
+    t.addEventListener("keydown",e=>{
+      if(e.key==="ArrowRight")sel((i+1)%tabs.length,true);
+      if(e.key==="ArrowLeft")sel((i-1+tabs.length)%tabs.length,true);
+    });
+  });
+  function sel(i,f){tabs.forEach((t,j)=>{t.setAttribute("aria-selected",j===i);t.tabIndex=j===i?0:-1});
+    panels.forEach((p,j)=>p.hidden=j!==i);if(f)tabs[i].focus();}
+}
+function initAllTabs(){$$("[data-tabs]").forEach(initTabs)}
+
+/* bars */
+function bars(id,rows,max,fmt,alt){
+  $(id).innerHTML=rows.map(r=>`<div class="brow"><div>${r[0]}</div><div class="btrack"><div class="bfill ${r[2]||''}" style="width:${r[1]/max*100}%"></div></div><div class="bval">${fmt?fmt(r[1]):r[1]}</div></div>`).join("");
+}
+bars("#simpleBars",[["IQR · Mileage",176],["IQR · Price",9,"b2"],["Z>3 · Mileage",0],["Z>3 · Price",1,"b2"]],176);
+bars("#aucBars",[["Isolation Forest",.818],["LOF",.814,"b2"],["Elliptic Envelope",.799],["One-Class SVM",.788,"b2"]],1,v=>v.toFixed(3));
+bars("#voteBars",[["0 votes",796],["1 vote",46,"b2"],["2 votes",28],["3 votes",33,"b2"],["4 votes",5]],796);
+bars("#heldBars",[["Isolation Forest",4.9],["One-Class SVM",4.4,"b2"],["LOF (novelty)",5.5],["Elliptic Envelope",6.6,"b2"]],8,v=>v.toFixed(1)+"%");
+bars("#pBars",[["Rank by k-distance",49],["Rank by LOF",1,"b2"]],50);
+bars("#qBars",[["Rank by k-distance",1],["Rank by LOF",2,"b2"]],50);
+
+/* masking */
+(function(){
+  const base=[10,11,9,10,12,10,11,9,10,10,11,9];let on=false;
+  const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+  const std=a=>{const m=mean(a);return Math.sqrt(mean(a.map(x=>(x-m)**2)))};
+  const med=a=>{const s=[...a].sort((x,y)=>x-y),n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2};
+  function draw(){
+    const a=on?base.concat([60,80]):base,m=mean(a),s=std(a);
+    $("#mMean").textContent=m.toFixed(1);$("#mStd").textContent=s.toFixed(1);
+    if(on){const md=med(a),mad=med(a.map(x=>Math.abs(x-md)));
+      $("#mZ").textContent=[60,80].map(x=>((x-m)/s).toFixed(2)).join(" , ");
+      $("#mR").textContent=[60,80].map(x=>(0.6745*(x-md)/mad).toFixed(1)).join(" , ");
+      $("#mNote").textContent="Both z-scores are below 3, so the ordinary rule misses the extremes. The robust score flags both clearly.";
+    }else{$("#mZ").textContent="n/a";$("#mR").textContent="n/a";$("#mNote").textContent="Showing the data without the extremes."}
+    $("#maskBtn").textContent=on?"Remove the extremes":"Add the two extremes";$("#maskBtn").setAttribute("aria-pressed",on);
+  }
+  $("#maskBtn").onclick=()=>{on=!on;draw()};draw();
+})();
+
+/* joint schematic */
+(function(){
+  let proj=false;const svg=$("#jointSvg");
+  function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  const r=mulberry(7);let pts=[];for(let i=0;i<110;i++){const x=r()*300+40;pts.push([x,215-(x-40)*0.62+(r()-.5)*26])}
+  function draw(){
+    let h=`<rect x="40" y="10" width="330" height="230" fill="#e6f3fb" rx="8"/>
+    <line x1="40" y1="240" x2="370" y2="240" stroke="#41627a"/><line x1="40" y1="10" x2="40" y2="240" stroke="#41627a"/>
+    <text x="205" y="256" font-size="11" text-anchor="middle" fill="#41627a">Mileage →</text>
+    <text x="12" y="125" font-size="11" fill="#41627a" transform="rotate(-90 12 125)" text-anchor="middle">Price →</text>`;
+    if(proj)h+=`<rect x="40" y="10" width="330" height="8" fill="#5ab4e5" opacity=".5"/><rect x="32" y="10" width="8" height="230" fill="#5ab4e5" opacity=".5"/>`;
+    h+=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="#1c6c9c" opacity=".65"/>`).join("");
+    const star=(x,y)=>`<path transform="translate(${x},${y})" d="M0,-10 L3,-3 L10,-3 L4.5,2 L6.5,9 L0,5 L-6.5,9 L-4.5,2 L-10,-3 L-3,-3 Z" fill="#0e4468" stroke="#fff" stroke-width="1"/>`;
+    h+=star(340,45)+star(75,205);
+    h+=`<text x="340" y="68" font-size="10" text-anchor="middle" fill="#0e4468">high / high</text><text x="85" y="190" font-size="10" text-anchor="middle" fill="#0e4468">low / low</text>`;
+    svg.innerHTML=h;
+  }
+  $("#projBtn").onclick=()=>{proj=!proj;$("#projBtn").setAttribute("aria-pressed",proj);$("#projBtn").textContent=proj?"Hide single-feature ranges":"Show each feature on its own";
+    $("#projNote").textContent=proj?"Both stars fall inside the shaded normal range of each feature separately. Only the pair is impossible.":"Illustrative sketch of the pattern, not the plotted dataset. Stars are the two odd combinations.";draw()};
+  draw();
+})();
+
+/* isolation game */
+(function(){
+  function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  const r0=mulberry(11),P=[];
+  for(let i=0;i<70;i++){const x=10+r0()*70,y=Math.min(95,Math.max(5,78-0.62*x+(r0()+r0()-1)*9));P.push([x,y])}
+  P.push([90,88]);const OUT=P.length-1;
+  let typ=0,best=1e9;P.forEach((p,i)=>{if(i===OUT)return;const d=Math.hypot(p[0]-45,p[1]-50);if(d<best){best=d;typ=i}});
+  const svg=$("#isoSvg");let timer=null;
+  function base(active,lines,target){
+    let h="";
+    lines.forEach(l=>{h+=l.f===0?`<line x1="${l.s}" x2="${l.s}" y1="${100-l.y1}" y2="${100-l.y0}" stroke="#1c6c9c" stroke-width=".6" stroke-dasharray="2 1"/>`:`<line y1="${100-l.s}" y2="${100-l.s}" x1="${l.x0}" x2="${l.x1}" stroke="#1c6c9c" stroke-width=".6" stroke-dasharray="2 1"/>`});
+    P.forEach((p,i)=>{const a=!active||active.has(i);
+      h+=`<circle cx="${p[0]}" cy="${100-p[1]}" r="${i===target?2.2:1.4}" fill="${i===target?'#0e4468':'#1c6c9c'}" opacity="${a?1:.18}"/>`});
+    svg.innerHTML=h;
+  }
+  base(null,[],-1);
+  function isolate(t,rng,record){
+    let act=new Set(P.map((_,i)=>i)),reg={x0:0,x1:100,y0:0,y1:100},d=0,steps=[];
+    while(act.size>1&&d<14){
+      const f=rng()<.5?0:1,vals=[...act].map(i=>P[i][f]),lo=Math.min(...vals),hi=Math.max(...vals);
+      if(lo===hi)break;const s=lo+rng()*(hi-lo);
+      const keep=P[t][f]<s;const n=new Set([...act].filter(i=>(P[i][f]<s)===keep));
+      if(record)steps.push({f,s,x0:reg.x0,x1:reg.x1,y0:reg.y0,y1:reg.y1,act:n});
+      if(f===0){keep?reg.x1=s:reg.x0=s}else{keep?reg.y1=s:reg.y0=s}
+      act=n;d++;
+    }
+    return record?steps:d;
+  }
+  function run(t,label){
+    clearTimeout(timer);$("#isoOut").disabled=$("#isoTyp").disabled=true;
+    const steps=isolate(t,Math.random,true);let lines=[],i=0;
+    function tick(){
+      if(i>=steps.length){
+        let sum=0;const N=400;for(let k=0;k<N;k++)sum+=isolate(t,Math.random,false);
+        $("#isoRes").textContent=`${label}: isolated after ${steps.length} cuts this time. Average over ${N} random trials: ${(sum/N).toFixed(1)} cuts. Fewer cuts means more anomalous.`;
+        $("#isoOut").disabled=$("#isoTyp").disabled=false;return;}
+      const s=steps[i];lines.push(s.f===0?{f:0,s:s.s,y0:s.y0,y1:s.y1}:{f:1,s:s.s,x0:s.x0,x1:s.x1});
+      base(s.act,lines,t);$("#isoRes").textContent=`Cut ${i+1}: ${s.act.size} point${s.act.size>1?"s":""} remain with the target.`;i++;timer=setTimeout(tick,700);
+    }
+    base(null,[],t);timer=setTimeout(tick,300);
+  }
+  $("#isoOut").onclick=()=>run(OUT,"The outlier");
+  $("#isoTyp").onclick=()=>run(typ,"The typical point");
+})();
+
+/* score calculator */
+function setD(v){$("#dSl").value=v;calcD()}
+function calcD(){
+  const d=+$("#dSl").value,s=Math.pow(2,-d/10.2);
+  $("#dVal").textContent=d.toFixed(1);$("#sVal").textContent=s.toFixed(2);
+  $("#needle").style.left=`calc(${s*100}% - 2px)`;
+  $("#sTag").textContent=s>0.65?"likely anomaly":s>0.5?"leaning unusual":s>0.45?"nothing stands out":"likely normal";
+}
+$("#dSl").oninput=calcD;calcD();
+
+/* gamma schematic */
+(function(){
+  function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  const r=mulberry(3),pts=[];for(let i=0;i<90;i++){const x=60+r()*280;pts.push([x,200-(x-60)*0.6+(r()-.5)*30])}
+  pts.push([330,60],[70,195]);
+  const cfg=[{n:"0.05 (small)",a:0,rx:165,ry:62,t:"Smooth, loose boundary. It can be too generous and include mild anomalies."},
+    {n:"0.5 (medium)",a:0,rx:140,ry:42,t:"The boundary follows the diagonal band without chasing individual points."},
+    {n:"5 (large)",a:1,rx:140,ry:38,t:"A bumpy boundary that wraps individual points. It may flag ordinary listings in thin parts of the band: overfitting."}];
+  function draw(){
+    const c=cfg[+$("#gSl").value];let d="";
+    for(let i=0;i<=120;i++){const th=i/120*2*Math.PI;let rr=1+(c.a?0.16*Math.sin(th*9)+0.08*Math.sin(th*17):0);
+      const ex=c.rx*Math.cos(th)*rr,ey=c.ry*Math.sin(th)*rr,ang=-0.52,x=200+ex*Math.cos(ang)-ey*Math.sin(ang),y=130+ex*Math.sin(ang)+ey*Math.cos(ang);
+      d+=(i?"L":"M")+x.toFixed(1)+","+y.toFixed(1)}
+    $("#svmSvg").innerHTML=`<rect width="400" height="240" fill="#e6f3fb" rx="8"/><path d="${d}Z" fill="#cfe8f7" fill-opacity=".7" stroke="#0e4468" stroke-width="2.5"/>`+
+      pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#1c6c9c"/>`).join("");
+    $("#gVal").textContent=c.n;$("#gSl").setAttribute("aria-valuetext",c.n);$("#gNote").textContent=c.t+" (Schematic, not the plotted dataset.)";
+  }
+  $("#gSl").oninput=draw;draw();
+})();
+
+/* LOF reader */
+function lofRead(){
+  const v=+$("#lSl").value;$("#lVal").textContent=v.toFixed(1);
+  $("#lTxt").innerHTML=v<0.95?"<b>Below 1:</b> the point is denser than its neighbours (deep inside a cluster).":
+   v<1.3?"<b>About 1:</b> about the same density as its neighbours. Normal.":
+   v<2?"<b>Slightly above 1:</b> typical of the border of a dense region. Not an anomaly by itself.":
+   "<b>Clearly above 1:</b> less dense than its neighbours. Likely anomaly, and usually deserves a look.";
+}
+$("#lSl").oninput=lofRead;lofRead();
+
+/* quizzes */
+const quizzes=[
+ ["q1","Knowledge check 1","DriveDeal has two jobs. (A) Clean last month's listing table, which may contain typos and scams, before training a pricing model. (B) Screen every new listing against a history that reviewers have already approved. Which job is outlier detection and which is novelty detection?",
+  ["Both jobs are outlier detection, because both look for unusual listings in the data","Job (A) is novelty detection, and job (B) is outlier detection, in that order","Both jobs are novelty detection, because both involve a pricing model and listings","(A) is outlier detection, as its data may hold anomalies; (B) is novelty detection, against clean history"],3,
+  "In (A) the data being examined may itself contain anomalies, so we look for them inside it. In (B) the approved history is considered clean, and we ask whether each new point resembles it. This is why some scikit-learn detectors need <code>novelty=True</code> (or a separate fit-then-predict step) for the second job."],
+ ["q2","Knowledge check 2","In the masking demo, two extreme values were added and their z-scores stayed below 3. Why?",
+  ["Z-scores cannot be computed for very large values, so the rule skips those points","The extremes pull the mean up and inflate the standard deviation, shrinking their own z-scores","The data was perfectly normal, so no value in it could ever be flagged as unusual","Z-scores only work with categorical data, so the numbers were not scored correctly"],1,
+  "The mean and standard deviation are computed from all the data, outliers included. Extreme values raise the mean and, especially, the standard deviation, so the distance from the mean in standard deviations is smaller than it should be. This is called masking. Median and MAD-based scores resist it."],
+ ["q3","Knowledge check 3","With 256-point sub-samples, the normaliser c(256) is about 10.2. Listing A has an average path length of 3.2 across the forest. Listing B has 11.5. Using s = 2^(−depth / c), which listing looks anomalous?",
+  ["Listing B is anomalous, because its average path length is the longer of the two","Both listings are normal, because both of their scores are below 1","Listing A (score about 0.80) is anomalous; B (about 0.46) is likely normal","Neither can be judged, because anomaly scores cannot be used without labels"],2,
+  "For A: 3.2 / 10.2 ≈ 0.31, so s = 2<sup>−0.31</sup> ≈ 0.80. For B: 11.5 / 10.2 ≈ 1.13, so s = 2<sup>−1.13</sup> ≈ 0.46. Short paths mean the point was isolated quickly, the signature of an anomaly. Scores near 1 are anomalous, and no labels are needed to rank them."],
+ ["q4","Knowledge check 4","A One-Class SVM with nu = 0.05 is trained on 2,000 listings. What does nu = 0.05 mean?",
+  ["An upper bound on the share treated as outliers (about 100 listings), and a lower bound on support vectors","Exactly 5% of the listings will be flagged as outliers, no more and no fewer","The boundary around the normal data has a fixed radius of exactly 0.05 units","It sets the number of features that the model uses when it learns the boundary"],0,
+  "<code>nu</code> is a bound, not a guarantee. It caps the share of training points allowed outside the boundary (here around 5%) and also sets a floor on the share of support vectors. In practice the flagged share lands close to <code>nu</code>, which is why it works as a review budget. The radius is determined during training, and <code>nu</code> has nothing to do with the number of features."],
+ ["q5","Knowledge check 5","Point P is 1.0 away from the edge of a very tight cluster whose members are about 0.1 apart. Point Q is 1.0 away from the nearest point of a loose cluster whose members are about 1.0 apart. Which point has the higher LOF?",
+  ["Q, because it is just as far from its nearest cluster as P is from its own","Both have the same LOF, because the raw distances to their clusters are equal","Neither, because LOF depends only on the number of points in the dataset","P, because its neighbours are far denser than it is, so the density ratio is large"],3,
+  "LOF compares a point's density with that of its neighbours. P's neighbours sit in a tight cluster with very high density, while P is isolated relative to that scale, giving a large ratio. Q's neighbours are themselves widely spaced, so a gap of 1.0 is ordinary for them and Q's LOF stays close to 1. The same raw distance means different things in different neighbourhoods."]
+];
+quizzes.forEach(q=>{
+  const el=$("#"+q[0]);
+  el.innerHTML=`<div class="quiz"><div class="qh">${q[1]}</div><p style="margin:8px 0;font:1rem/1.6 system-ui"><b>${q[2]}</b></p><div role="radiogroup" aria-label="Answer options">`+
+   q[3].map((c,i)=>`<label><input type="radio" name="${q[0]}" value="${i}">${c}</label>`).join("")+`</div><div class="fb" hidden></div></div>`;
+  $$("input",el).forEach(inp=>inp.onchange=()=>{
+    const v=+inp.value,fb=$(".fb",el),ls=$$("label",el);
+    ls.forEach((l,i)=>{l.classList.toggle("ok",i===q[4]);l.classList.toggle("no",i===v&&v!==q[4])});
+    fb.hidden=false;fb.innerHTML=(v===q[4]?"<b>Correct.</b> ":"<b>Not quite.</b> Correct answer: "+q[3][q[4]]+"<br>")+"<br>"+q[5];
+  });
+});
+
+/* tables */
+(function(){
+  const n=["Isolation Forest","One-Class SVM","LOF","Elliptic Envelope"],j=[[1,.59,.45,.26],[.59,1,.61,.12],[.45,.61,1,.05],[.26,.12,.05,1]];
+  $("#jacT").innerHTML="<tr><th></th>"+n.map(x=>`<th>${x}</th>`).join("")+"</tr>"+j.map((r,i)=>`<tr><th>${n[i]}</th>`+r.map(v=>`<td style="background:rgba(28,108,156,${.08+v*.72});color:${v>.5?'#fff':'#12324a'}">${v.toFixed(2)}</td>`).join("")+"</tr>").join("");
+  const q=[[895,128.60,129.28,4,.71],[821,119.86,127.36,4,.69],[791,100.50,141.20,4,.66],[818,123.19,104.40,4,.63],[802,117.65,91.71,4,.63],[904,70.00,20.00,3,.74],[905,68.00,22.00,3,.73],[901,5.89,120.00,3,.70],[903,5.58,117.00,3,.70],[900,1.73,110.00,3,.70],[902,6.39,118.00,3,.70],[675,10.18,34.50,3,.67],[713,112.12,126.30,3,.63],[879,111.12,126.95,3,.63],[109,3.04,90.31,3,.63]];
+  $("#qT").innerHTML="<tr><th class='n'>Row</th><th class='n'>Mileage</th><th class='n'>Price</th><th class='n'>Votes</th><th class='n'>IF score</th></tr>"+q.map(r=>`<tr${r[3]===4?' class="hl"':''}><td class="n">${r[0]}</td><td class="n">${r[1].toFixed(2)}</td><td class="n">${r[2].toFixed(2)}</td><td class="n">${"●".repeat(r[3])}${"○".repeat(4-r[3])} ${r[3]}</td><td class="n">${r[4].toFixed(2)}</td></tr>`).join("");
+  const x=[["False",[683,15,12,20,0]],["True",[113,31,16,13,5]]];
+  $("#xT").innerHTML="<tr><th>IQR or Z flag</th>"+[0,1,2,3,4].map(v=>`<th>${v} votes</th>`).join("")+"</tr>"+x.map(r=>`<tr><th>${r[0]}</th>`+r[1].map(v=>`<td style="background:rgba(28,108,156,${.06+Math.min(1,v/700)*.8});color:${v>400?'#fff':'#12324a'}">${v}</td>`).join("")+"</tr>").join("");
+})();
+
+/* new listings */
+(function(){
+  const L=[["Very low mileage, very high price","13.8","162.4",[1,1,1,1],"Like a new EV that does not match the old pattern. Flagged by all four."],
+           ["Extreme mileage, ordinary price","154.3","73.6",[1,1,1,1],"Mileage 20% beyond the largest seen. Flagged by all four."],
+           ["Typical listing","34.6","73.6",[0,0,0,0],"Median mileage and price. Flagged by none."]];
+  const M=["Isolation Forest","One-Class SVM","LOF (novelty)","Elliptic Envelope"];
+  $("#newTabs").innerHTML=L.map((l,i)=>`<button role="tab" aria-selected="${i===0}">${l[0]}</button>`).join("");
+  const out=$("#newOut");
+  function show(i){const l=L[i];out.innerHTML=`<p style="font:.95rem system-ui;margin:0 0 8px">Mileage <b>${l[1]}</b> · Price <b>${l[2]}</b>. ${l[4]}</p><div class="grid" style="margin:0">`+M.map((m,k)=>`<div class="card" style="padding:12px"><div style="font:.78rem system-ui;color:var(--ink2)">${m}</div><div class="stat" style="font-size:1.1rem">${l[3][k]?"✕ Unusual":"✓ Normal"}</div></div>`).join("")+"</div>"}
+  show(0);
+  $$("[role=tab]",$("#newTabs")).forEach((t,i)=>t.addEventListener("click",()=>{$$("[role=tab]",$("#newTabs")).forEach((b,j)=>b.setAttribute("aria-selected",j===i));show(i)}));
+})();
+
+/* chooser */
+(function(){
+  const R=[["IQR / Z-score","Extreme in one feature","Simple, fast, easy to explain","One feature at a time; Z-score is masked by outliers; assumes a shape","Simple"],
+   ["DBSCAN","Points with no dense neighbourhood","Any cluster shape, no K","One global eps; parameter sensitive","Density"],
+   ["Elliptic Envelope","Outside a robust Gaussian ellipse","Very fast; clean when data is one blob","Fails for several clusters or curved shapes","Parametric"],
+   ["Isolation Forest","Easy to isolate with random splits","Fast on large data, few assumptions, good default","Axis-parallel banding; a threshold is needed","Trees"],
+   ["One-Class SVM","Boundary around normal data","Flexible shapes, with a kernel","Needs scaling; sensitive to gamma and nu; slow on large data","Boundary"],
+   ["LOF","Lower density than your neighbours","Handles clusters of different density","Choice of k and threshold; slow; weaker in high dimensions","Density"]];
+  const fs=["All",...new Set(R.map(r=>r[4]))];let cur="All";
+  function draw(){
+    $("#filt").innerHTML=fs.map(f=>`<button class="${f===cur?'':'alt'}" aria-pressed="${f===cur}">${f}</button>`).join("");
+    $$("#filt button").forEach(b=>b.onclick=()=>{cur=b.textContent;draw()});
+    $("#cT").innerHTML="<tr><th>Method</th><th>Idea</th><th>Strengths</th><th>Watch out for</th></tr>"+R.filter(r=>cur==="All"||r[4]===cur).map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+  }
+  draw();
+})();
+
+/* key takeaways */
+(function(){
+  const K=[["Anomaly, outlier, novelty","Anomaly is the umbrella term. <b>Outlier detection</b> looks for anomalies in data that may contain them. <b>Novelty detection</b> flags new points against clean reference data."],
+   ["IQR and Z-score","They look at one feature at a time. The Z-score suffers from <b>masking</b>, and neither sees <b>anomalies that hide in combinations</b>."],
+   ["Isolation Forest","Anomalies are isolated in fewer random splits (shorter path). Score: 2<sup>−E[h(x)]/c(ψ)</sup>. Fast and a strong default, but splits are axis-parallel."],
+   ["One-Class SVM","Learns a boundary around normal data. <code>nu</code> bounds the share flagged and <code>gamma</code> sets how local the boundary is. Scale first."],
+   ["LOF","Compares a point's density with its neighbours', so it handles clusters of different density. Around 1 is normal; values well above 1 are suspicious. The threshold is a judgement call."],
+   ["Elliptic Envelope","A robust Gaussian ellipse: good for one blob, poor otherwise."],
+   ["Comparing methods fairly","Same budget, planted outliers where possible, AUC for ranking quality, and a <b>consensus vote</b> with a stability check on real data."],
+   ["The budget and the labels","The contamination budget is a <b>business decision</b>, and reviewers' verdicts are the first real labels."]];
+  $("#keys").innerHTML=K.map(k=>`<details><summary>${k[0]}</summary><div>${k[1]}</div></details>`).join("");
+})();
+
+initAllTabs();
+</script>
+</body>
+</html>
